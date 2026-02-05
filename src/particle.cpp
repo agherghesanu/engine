@@ -15,6 +15,11 @@ void Particle::integrate(real duration) {
 	//calculate the resulting acceleration for the force
 	Vector3 resultingAcc = accelaration;
 
+	// F = m*a => a = F/m = F * inverseMass
+	resultingAcc += forceAccum * inverseMass;
+
+
+
 	//update velocity from the acceleration
 	velocity += resultingAcc * duration;
 
@@ -22,4 +27,15 @@ void Particle::integrate(real duration) {
 	// t is time; derived from the m*v'+m*k*v = 0 differential equation
 	velocity *= std::pow(damping, duration);
 
+	clearAccumulator();
+}
+
+void Particle::addForce(const Vector3& force) {
+	forceAccum += force;
+}
+
+void Particle::clearAccumulator() {
+	forceAccum.x = 0;
+	forceAccum.y = 0;
+	forceAccum.z = 0;
 }

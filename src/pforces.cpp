@@ -32,3 +32,18 @@ void ParticleDrag::updateForce(Particle* particle, real duration) {
 
 	particle->addForce(force * -totalDrag);
 }
+
+void ParticleSpring::updateForce(Particle* particle, real duration) {
+	
+	// calculatae displacement vector
+	Vector3 force = particle->position - other->position;
+
+	real magnitude = force.magnitude();
+
+	real f = -1.0 * springConstant * (magnitude - restLength);
+
+	force.normalize();
+
+	particle->addForce(force * f);
+
+}

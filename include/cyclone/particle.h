@@ -41,7 +41,7 @@ namespace cyclone {
 		//constructor with parameters
 		// use setter to set the mass to ensure inverse mass is calculated correctly
 		Particle(const Vector3& position, const Vector3& velocity, const Vector3& acceelaration, const 
-			Vector3& forceAccum, real damping, real inverseMass, real )
+			Vector3& forceAccum, real damping, real inverseMass)
 			: position(position), velocity(velocity), accelaration(acceelaration), damping(damping), forceAccum(forceAccum) {
 			setmass(inverseMass);
 		}

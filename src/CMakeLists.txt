@@ -1,7 +1,8 @@
 add_library(cyclone 
 			core.cpp
 			particle.cpp
-			pfgen.cpp)
+			pfgen.cpp
+			pforces.cpp)
 
 
 target_include_directories(cyclone PUBLIC 

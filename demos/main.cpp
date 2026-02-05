@@ -1,79 +1,57 @@
 #include <iostream>
-#include <cyclone/particle.h>
-
 #include <vector>
-#include <iomanip>
-
-struct AmmoRound {
-	cyclone::Particle particle;
-	std::string type;
-
-	AmmoRound(const cyclone::Particle& p, const std::string& t) : particle(p), type(t) {}
-};
+#include <cyclone/core.h>
+#include <cyclone/particle.h>
+#include <cyclone/pfgen.h>   // The Registry
+#include <cyclone/pforces.h> // The Concrete Generators
 
 int main() {
-	std::vector<AmmoRound> rounds;
 
-    cyclone::Particle pistol;
-    pistol.position = cyclone::Vector3(0, 0, 0);
-    pistol.velocity = cyclone::Vector3(35, 0, 0);
-    pistol.accelaration = cyclone::Vector3(0, -10.0, 0); // Gravity
-    pistol.damping = 0.99;
-	rounds.push_back(AmmoRound(pistol, "Pistol"));
+    // 1. Create the Registry
+    cyclone::ParticleForceRegister registry;
 
-    // B. Artillery
-    // Upward angle (40 up, 30 forward), Standard Gravity, Little Damping
-    cyclone::Particle artillery;
-    artillery.position = cyclone::Vector3(0, 0, 0);
-    artillery.velocity = cyclone::Vector3(30, 40, 0); // Shooting up/forward
-    artillery.accelaration = cyclone::Vector3(0, -20.0, 0); // Heavy gravity feel
-    artillery.damping = 0.99;
-    rounds.push_back(AmmoRound(artillery, "Artillery"));
+    // 2. Create Generators
+    // A. Gravity (Standard Earth Gravity)
+    cyclone::Vector3 gravityVector(0, -10.0, 0);
+    cyclone::ParticleGravity gravityGen(gravityVector);
 
-    // C. Fireball
-    // Slow, 'Floaty' (Gravity -0.6), High Damping (0.9) simulates air resistance
-    cyclone::Particle fireball;
-    fireball.position = cyclone::Vector3(0, 0, 0);
-    fireball.velocity = cyclone::Vector3(10, 0, 0);
-    fireball.accelaration = cyclone::Vector3(0, -0.6, 0); // Very low gravity
-    fireball.damping = 0.9;
-    rounds.push_back(AmmoRound(fireball, "fireball"));
-    // D. Laser Beam
-    // Super fast, No Gravity, No Damping (goes forever)
-    cyclone::Particle laser;
-    laser.position = cyclone::Vector3(0, 0, 0);
-    laser.velocity = cyclone::Vector3(100, 0, 0);
-    laser.accelaration = cyclone::Vector3(0, 0, 0); // No gravity
-    laser.damping = 1.0; // No damping
-    rounds.push_back(AmmoRound(laser, "laser"));
+    // B. Drag (Air Resistance)
+    // k1 = 0.1 (velocity drag), k2 = 0.0 (velocity squared drag)
+    cyclone::ParticleDrag dragGen(0.1, 0.0);
 
-	cyclone::real duration = 1.0; // time step
+    // 3. Create a Particle (The "Paratrooper")
+    cyclone::Particle paratrooper;
+    paratrooper.position = cyclone::Vector3(0, 100, 0); // Start high up
+    paratrooper.velocity = cyclone::Vector3(0, 0, 0);
+    paratrooper.setmass(2.0f); // 2kg mass
+    paratrooper.damping = 0.99;
+    // CRITICAL: acceleration is now (0,0,0). Gravity is applied via GENERATOR, not hardcoded.
+    paratrooper.accelaration = cyclone::Vector3(0, 0, 0);
 
-	std::cout << std::fixed << std::setprecision(2); 
+    // 4. Register the forces
+    // "Apply Gravity to the Paratrooper"
+    registry.add(&paratrooper, &gravityGen);
+    // "Apply Drag to the Paratrooper"
+    registry.add(&paratrooper, &dragGen);
 
+    // 5. Simulation Loop
+    cyclone::real duration = 0.1; // 100ms per frame
 
-    for (int i = 0; i < 10; i++) {
-        std::cout << "\n[ Time: " << i << "s ]" << std::endl;
-        std::cout << "-----------------------------------------------------" << std::endl;
-        std::cout << "| Type      | Pos X   | Pos Y   | Vel Y   | Status" << std::endl;
+    for (int i = 0; i <= 20; i++) {
+        // A. Update Forces (The Registry Magic)
+        // This calls gravityGen.updateForce() and dragGen.updateForce() automatically
+        registry.updateForces(duration);
 
-        for (auto& round : rounds) {
-			cyclone::Particle& p = round.particle;
+        // B. Integrate (Move the particle)
+        paratrooper.integrate(duration);
 
-            std::string status = "Flying";
-            if (p.position.y < 0 && i > 0) status = "HIT GROUND";
-
-            std::cout << "| " << std::setw(9) << round.type
-                << " | " << std::setw(7) << p.position.x
-                << " | " << std::setw(7) << p.position.y
-                << " | " << std::setw(7) << p.velocity.y
-                << " | " << status << std::endl;
-
-            // PHYSICS STEP: Move the particle
-            // We only integrate if it hasn't hit the ground yet (simple check)
-            if (p.position.y >= 0) {
-                p.integrate(duration);
-            }
-        }
+        // Output Status
+        std::cout << "Time: " << (i * duration) << "s | "
+            << "Pos Y: " << paratrooper.position.y << " | "
+            << "Vel Y: " << paratrooper.velocity.y << " | "
+            << "Forces Applied"
+            << std::endl;
     }
+
+    return 0;
 }

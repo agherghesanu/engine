@@ -5,54 +5,49 @@
 #include <cyclone/pfgen.h>   // The Registry
 #include <cyclone/pforces.h> // The Concrete Generators
 
+using namespace std;
+
+using namespace cyclone;
 
 int main() {
+	ParticleForceRegister registry;
 
-    // 1. Create the Registry
-    cyclone::ParticleForceRegister registry;
+	Particle anchor;
 
-    // 2. Create Generators
-    // A. Gravity (Standard Earth Gravity)
-    cyclone::Vector3 gravityVector(0, -10.0, 0);
-    cyclone::ParticleGravity gravityGen(gravityVector);
+	anchor.position = Vector3(0, 15, 0);
 
-    // B. Drag (Air Resistance)
-    // k1 = 0.1 (velocity drag), k2 = 0.0 (velocity squared drag)
-    cyclone::ParticleDrag dragGen(0.1, 0.0);
+	anchor.setmass(0.0); // infinite mass
 
-    // 3. Create a Particle (The "Paratrooper")
-    cyclone::Particle paratrooper;
-    paratrooper.position = cyclone::Vector3(0, 100, 0); // Start high up
-    paratrooper.velocity = cyclone::Vector3(0, 0, 0);
-    paratrooper.setmass(2.0f); // 2kg mass
-    paratrooper.damping = 0.99;
-    // CRITICAL: acceleration is now (0,0,0). Gravity is applied via GENERATOR, not hardcoded.
-    paratrooper.accelaration = cyclone::Vector3(0, 0, 0);
+	Particle human;
 
-    // 4. Register the forces
-    // "Apply Gravity to the Paratrooper"
-    registry.add(&paratrooper, &gravityGen);
-    // "Apply Drag to the Paratrooper"
-    registry.add(&paratrooper, &dragGen);
+	human.position = Vector3(0, 0, 0);
 
-    // 5. Simulation Loop
-    cyclone::real duration = 0.1; // 100ms per frame
+	human.setmass(2.0); // 70 kg
 
-    for (int i = 0; i <= 20; i++) {
-        // A. Update Forces (The Registry Magic)
-        // This calls gravityGen.updateForce() and dragGen.updateForce() automatically
-        registry.updateForces(duration);
+	human.damping = 0.95;
 
-        // B. Integrate (Move the particle)
-        paratrooper.integrate(duration);
+	ParticleGravity gravity(Vector3(0, -10, 0));
 
-        // Output Status
-        std::cout << "Time: " << (i * duration) << "s | "
-            << "Pos Y: " << paratrooper.position.y << " | "
-            << "Vel Y: " << paratrooper.velocity.y << " | "
-            << "Forces Applied"
-            << std::endl;
-    }
+	ParticleSpring spring(&anchor, 10.0, 10.0);
 
-    return 0;
+	registry.add(&human, &gravity);
+
+	registry.add(&human, &spring);
+
+	const real duration = 0.01; // 20 ms time step
+
+
+	for (int i = 0; i <= 150; i++) {
+		registry.updateForces(duration);
+		human.integrate(duration);
+
+		cyclone::Vector3 dist = human.position - anchor.position;
+
+		std::cout << "T=" << (i * duration) << " | "
+			<< "human Y: " << human.position.y << " | "
+			<< "Dist: " << dist.magnitude()
+			<< std::endl;
+	}
+
+    
 }

@@ -28,6 +28,25 @@ namespace cyclone {
 		ParticleDrag(real k1, real k2) : k1(k1), k2(k2) {}
 		virtual void updateForce(Particle* particle, real duration);
 	};
+
+	/*
+	* one particle is connected to another by a spring
+	* this generator creates the connection
+	*/
+	class ParticleSpring : public ParticleForceGenerator {
+	public:
+		Particle* other; // the other end of the spring
+
+		real springConstant; // stiffness of the spring
+
+		real restLength; // length of the spring at rest
+
+		ParticleSpring(Particle* other, real springConstant, real restLength):
+			other(other), springConstant(springConstant), restLength(restLength) {
+		}
+
+		virtual void updateForce(Particle* other, real duration);
+	};
 }
 
 #endif // !CYCLONE_PFORCES_H

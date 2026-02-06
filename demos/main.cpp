@@ -73,7 +73,7 @@ int main() {
           
             Vector3 distVec = ball.position - anchor.position;
             real currentDist = distVec.magnitude();
-            string status = (contacts.empty()) ? "Slack" : "TAUT!";
+            string status = (contacts.empty()) ? "np" : "yes";
 
             cout << "T=" << setw(4) << (frame * duration) << " | "
                 << "Ball Pos: (" << setw(5) << fixed << setprecision(2)

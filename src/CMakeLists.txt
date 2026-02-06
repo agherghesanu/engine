@@ -3,7 +3,8 @@ add_library(cyclone
 			particle.cpp
 			pfgen.cpp
 			pforces.cpp
-			pcontacts.cpp)
+			pcontacts.cpp
+			plinks.cpp)
 
 
 target_include_directories(cyclone PUBLIC 

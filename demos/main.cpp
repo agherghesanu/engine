@@ -1,53 +1,73 @@
 #include <iostream>
 #include <vector>
-#include <cyclone/core.h>
-#include <cyclone/particle.h>
-#include <cyclone/pfgen.h>   // The Registry
-#include <cyclone/pforces.h> // The Concrete Generators
-
-using namespace std;
+#include <iomanip>
+#include <cyclone/pcontacts.h>
 
 using namespace cyclone;
 
 int main() {
-	ParticleForceRegister registry;
+   
+    // We only have 1 collision max, so 2 iterations is plenty safe.
+    ParticleContactResolver resolver(2);
 
-	Particle anchor;
+	// set up the particle
+    Particle ball;
+    ball.position = Vector3(0, 10.0, 0); // Start 10m high
+    ball.velocity = Vector3(0, 0, 0);
+    ball.accelaration = Vector3(0, -10.0, 0); // Gravity
+    ball.setmass(1.0f);
+    ball.damping = 0.99f; // Small air resistance
 
-	anchor.position = Vector3(0, 15, 0);
+  
+    const real duration = 0.02f; // 50 FPS
 
-	anchor.setmass(0.0); // infinite mass
+    // We will simulate 4 seconds of bouncing
+    for (int frame = 0; frame < 200; frame++) {
 
-	Particle human;
+        ball.integrate(duration);
 
-	human.position = Vector3(0, 0, 0);
+        std::vector<ParticleContact> contacts;
 
-	human.setmass(2.0); // 70 kg
+        // Check: Did we hit the floor (Y = 0)?
+        if (ball.position.y < 0.0f) {
+            ParticleContact contact;
 
-	human.damping = 0.95;
+            //collison??
+            contact.particles[0] = &ball;
+            contact.particles[1] = nullptr; // imovable
 
-	ParticleGravity gravity(Vector3(0, -10, 0));
+ 
+            //ball is pushed up
+            contact.contactNormal = Vector3(0, 1, 0);
 
-	ParticleSpring spring(&anchor, 10.0, 10.0);
+            
+            contact.restitution = 0.7f; // Lose 30% energy per bounce
 
-	registry.add(&human, &gravity);
+            
+            // how deep are we? if y is -0.5, penetration is 0.5
+            contact.penetration = -ball.position.y;
 
-	registry.add(&human, &spring);
+            contacts.push_back(contact);
+        }
 
-	const real duration = 0.01; // 20 ms time step
+        // fix colssions
+        if (!contacts.empty()) {
+            resolver.resolveContacts(
+                contacts.data(),
+                contacts.size(),
+                duration
+            );
+        }
 
 
-	for (int i = 0; i <= 150; i++) {
-		registry.updateForces(duration);
-		human.integrate(duration);
+        if (frame % 5 == 0) {
+            std::cout << "Time: " << std::setw(4) << (frame * duration) << "s | "
+                << "Pos Y: " << std::setw(7) << ball.position.y << " | "
+                << "Vel Y: " << std::setw(7) << ball.velocity.y << " | "
+                << (contacts.empty() ? " " : "BOUNCE!") // Label bounces
+                << std::endl;
+        }
+    }
 
-		cyclone::Vector3 dist = human.position - anchor.position;
-
-		std::cout << "T=" << (i * duration) << " | "
-			<< "human Y: " << human.position.y << " | "
-			<< "Dist: " << dist.magnitude()
-			<< std::endl;
-	}
-
-    
+    return 0;
 }

@@ -18,6 +18,20 @@ namespace cyclone {
 
 		constexpr Vector3(real x, real y, real z) : x(x), y(y), z(z), padding(0) {}
 
+		//dot procuct
+		[[nodiscard]] real operator*(const Vector3& other) const {
+			return x * other.x + y * other.y + z * other.z;
+		}
+
+		//cross product
+		[[nodiscard]] Vector3 operator^(const Vector3& other) const {
+			return Vector3(
+				y * other.z - z * other.y,
+				z * other.x - x * other.z,
+				x * other.y - y * other.x
+			);
+		}
+
 		//operatior overloads for vector arithmetic
 		void operator*=(const real value) {
 			x *= value;
@@ -77,6 +91,8 @@ namespace cyclone {
 				*this *= (1.0 / mag);
 			}
 		}
+
+
 	private:
 		real padding; // align at 32 bytes
 	};

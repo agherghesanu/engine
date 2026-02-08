@@ -4,7 +4,22 @@
 #include "cyclone/pcontacts.h"
 
 namespace cyclone {
-	class ParticleLink {
+
+	class ParticleContactGenerator {
+		public:
+		/*
+		* fills the contact structure with the contact needed
+		* from violatng the constraint
+		* returns the number of contacts that it has filled in
+		*/
+		virtual unsigned addContact(ParticleContact* contact, unsigned limit) const = 0;
+	};
+
+	/*
+	* links two particle together with a constraint, generating a contact
+	* on constraint vioaltion
+	*/
+	class ParticleLink : public ParticleContactGenerator {
 	public:
 		// the two particles that are connected by this link
 		Particle* particles[2];

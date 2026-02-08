@@ -4,7 +4,8 @@ add_library(cyclone
 			pfgen.cpp
 			pforces.cpp
 			pcontacts.cpp
-			plinks.cpp)
+			plinks.cpp 
+			pworld.cpp)
 
 
 target_include_directories(cyclone PUBLIC 

@@ -22,15 +22,17 @@ void ParticleWorld::startFrame() {
 unsigned ParticleWorld::generateContacts() {
 	unsigned limit = maxContacts;
 	ParticleContact *nextContact = contacts;
+	
 
 	for (auto generator : contactGenerators) {
+		if (limit <= 0) {
+			break;
+		}
 		unsigned used = generator->addContact(nextContact, limit);
 		limit -= used;
 		nextContact += used;
 
-		if (limit <= 0) {
-			break;
-		}
+		
 	}
 
 	return maxContacts - limit;

@@ -1,87 +1,109 @@
 #include <iostream>
 #include <vector>
+
 #include <iomanip>
-#include <cmath>
+
 #include <cyclone/core.h>
 #include <cyclone/particle.h>
-#include <cyclone/pcontacts.h>
+#include <cyclone/pcontacts.h>	
+#include <cyclone/pfgen.h>
+#include <cyclone/pforces.h>
 #include <cyclone/plinks.h>
+#include <cyclone/pworld.h>
 
 using namespace cyclone;
 
 using namespace std;
 
+void printBridge(const vector<Particle*> particles) {
+	Particle* mid = particles[particles.size() / 2];
+
+	cout << "Mid-Deck Height (Y): " << std::fixed << std::setprecision(2)
+		<< mid->position.y << " m";
+}
 
 int main() {
-    ParticleContactResolver resolver(1);
+	ParticleWorld world(1000, 1200);
 
-    //Setup the Particles
-  
-    Particle anchor;
-    anchor.position = Vector3(0, 10, 0);
-    anchor.setmass(0); // Infinite Mass (Immovable)
-    anchor.velocity = Vector3(0, 0, 0);
-    anchor.accelaration = Vector3(0, 0, 0);
+	vector<Particle*> particles;
 
-    // Particle B: The Wrecking Ball
-    Particle ball;
-    ball.position = Vector3(10, 10, 0); // Start 10m to the right (Horizontal)
-    ball.setmass(200.0); // Heavy
-    ball.velocity = Vector3(0, 0, 0);
-    ball.accelaration = Vector3(0, -10.0, 0); // Gravity
-    ball.damping = 0.99f;
+	vector<ParticleCable*> links;
 
-    //Setup the Link 
-    ParticleCable cable;
-    cable.particles[0] = &anchor;
-    cable.particles[1] = &ball;
-    cable.maxLength = 10.0; 
-    cable.restitution = 0.0; 
+	for (int i = 0; i < 12; i++) {
+		Particle* p = new Particle();
+		p->position = Vector3(-12.0 + i * 2.0, 0, 0);
+		p->velocity = Vector3(0, 0, 0);
+		p->accelaration = Vector3(0, 0, 0);
+		p->setmass(2.0);
+		p->damping = 0.95;
 
-    // We use a small timestep for stability with hard constraints
-    const real duration = 0.01;
+		particles.push_back(p);
 
-    vector<ParticleContact> contacts;
+		world.getParticles().push_back(p);
+	}
 
-    for (int frame = 0; frame < 300; frame++) {
+	Particle anchorLeft, anchorRight;
+	anchorLeft.position = Vector3(-12.5, 0, 0);
+	anchorLeft.velocity = Vector3(0, 0, 0);
+	anchorLeft.accelaration = Vector3(0, 0, 0);
+	anchorLeft.setmass(0.0); // imovable
 
-      
-        ball.integrate(duration);
+	anchorRight.position = Vector3(11, 0, 0);
+	anchorRight.velocity = Vector3(0, 0, 0);
+	anchorRight.accelaration = Vector3(0, 0, 0);
+	anchorRight.setmass(0.0); // imovable
 
- 
-        contacts.clear(); // Reset the list
+	ParticleCable* leftLink = new ParticleCable();
+	leftLink->particles[0] = &anchorLeft;
+	leftLink->particles[1] = particles[0];
+	leftLink->maxLength = 2.0;
+	leftLink->restitution = 0.0;
 
-        // Create a temporary contact object to fill
-        ParticleContact tempContact;
+	world.getContactGenerators().push_back(leftLink);
+	links.push_back(leftLink);
 
-        // Ask the cable: "Are we overextended?"
-        // If yes, it returns 1 and fills 'tempContact'
-        if (cable.addContact(&tempContact, 1) > 0) {
-            contacts.push_back(tempContact);
-        }
+	ParticleCable* rightLink = new ParticleCable();
+	rightLink->particles[0] = particles[particles.size() - 1];
+	rightLink->particles[1] = &anchorRight;
+	rightLink->maxLength = 2.0;
+	rightLink->restitution = 0.0;
 
-        if (!contacts.empty()) {
-            resolver.resolveContacts(
-                contacts.data(),
-                contacts.size(),
-                duration
-            );
-        }
 
-   
-        if (frame % 10 == 0) {
-          
-            Vector3 distVec = ball.position - anchor.position;
-            real currentDist = distVec.magnitude();
-            string status = (contacts.empty()) ? "np" : "yes";
+	for (int i = 0; i < 11; i++) {
+		ParticleCable* link = new ParticleCable();
+		link->particles[0] = particles[i];
+		link->particles[1] = particles[i + 1];
+		link->maxLength = 2.2;
+		link->restitution = 0.0;
 
-            cout << "T=" << setw(4) << (frame * duration) << " | "
-                << "Ball Pos: (" << setw(5) << fixed << setprecision(2)
-                << ball.position.x << ", " << ball.position.y << ") | "
-                << "Len: " << currentDist << " | "
-                << status << endl;
-        }
-    }
+		world.getContactGenerators().push_back(link);
+		links.push_back(link);
+	}
 
-    return 0;
+	world.getContactGenerators().push_back(rightLink);
+	links.push_back(rightLink);
+
+	ParticleGravity* gravity = new ParticleGravity(Vector3(0, -9.81, 0));
+	for (auto p : particles) {
+		world.getForceRegistry().add(p, gravity);
+	}
+
+	const real duration = 0.00025;
+
+	for (int i = 0; i < 10000; i++) {
+		world.startFrame();
+		world.runPhysics(duration);
+
+		if (i % 5 == 0) {
+			std::cout << "T=" << std::setw(4) << (i * duration) << "s | ";
+			printBridge(particles);
+			std::cout << " | " << (i < 10 ? "Falling..." : "Settling...") << std::endl;
+		}
+
+	}
+
 }
+
+
+
+

@@ -29,6 +29,8 @@ void ParticleContact::resolveInterpenetration(real duration) const {
 
 	if (particles[1]) 
 		particles[1]->position -= movePerIMass * particles[1]->inverseMass;
+
+	const_cast<ParticleContact*>(this)->penetration = 0; // reset penetration after resolving
 }
 
 void ParticleContact::resolveVelocity(real duration)
@@ -104,30 +106,34 @@ void ParticleContactResolver::setIterations(unsigned iterations) {
     this->iterations = iterations;
 }
 
-void cyclone::ParticleContactResolver::resolveContacts(ParticleContact* contactArray, 
+void cyclone::ParticleContactResolver::resolveContacts(ParticleContact* contactArray,
     unsigned numContacts,
-    real duration){
-    
+    real duration) {
+
     iterationsUsed = 0;
     while (iterationsUsed < iterations) {
         real max = DBL_MAX;
 
-        unsigned maxIndex = max;
+    
+        unsigned maxIndex = numContacts;
 
-		// Find the contact with the largest closing velocity
+    
         for (unsigned i = 0; i < numContacts; i++) {
             real selVelocity = contactArray[i].calculateSeparatingVelocity();
-            if (selVelocity < max && (selVelocity < 0 || contactArray[i].penetration)) {
+
+         
+            if (selVelocity < max && (selVelocity < 0 || contactArray[i].penetration > 0)) {
                 max = selVelocity;
                 maxIndex = i;
             }
         }
 
+
         if (maxIndex == numContacts)
             break;
 
-		contactArray[maxIndex].resolve(duration);
-        
-		iterationsUsed++;
+        contactArray[maxIndex].resolve(duration);
+
+        iterationsUsed++;
     }
 }

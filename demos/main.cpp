@@ -1,106 +1,71 @@
-#include <iostream>
-#include <vector>
-
-#include <iomanip>
-
 #include <cyclone/core.h>
-#include <cyclone/particle.h>
-#include <cyclone/pcontacts.h>	
-#include <cyclone/pfgen.h>
-#include <cyclone/pforces.h>
-#include <cyclone/plinks.h>
-#include <cyclone/pworld.h>
+#include <cyclone/body.h>
+
+#include <iostream>
+#include <iomanip>
 
 using namespace cyclone;
 
 using namespace std;
 
-void printBridge(const vector<Particle*> particles) {
-	Particle* mid = particles[particles.size() / 2];
+void printVector(const char* label, const Vector3& v) {
+    cout << label << ": ["
+        << fixed << setprecision(2) << v.x << ", "
+        << v.y << ", "
+        << v.z << "]";
+}
 
-	cout << "Mid-Deck Height (Y): " << std::fixed << std::setprecision(2)
-		<< mid->position.y << " m";
+// Helper to print quaternion cleanly
+void printQuat(const char* label, const Quaternion& q) {
+    cout << label << ": ["
+        << fixed << setprecision(2) << q.r << ", "
+        << q.i << ", "
+        << q.j << ", "
+        << q.k << "]";
 }
 
 int main() {
-	ParticleWorld world(1000, 1200);
+	RigidBody body;
 
-	vector<Particle*> particles;
+	body.setPosition(0, 0, 0);
 
-	vector<ParticleCable*> links;
+    body.setOrientation(Quaternion(1, 0, 0, 0));
 
-	for (int i = 0; i < 12; i++) {
-		Particle* p = new Particle();
-		p->position = Vector3(-12.0 + i * 2.0, 0, 0);
-		p->velocity = Vector3(0, 0, 0);
-		p->accelaration = Vector3(0, 0, 0);
-		p->setmass(2.0);
-		p->damping = 0.95;
+    body.setMass(2.0);
 
-		particles.push_back(p);
+	body.setDamping(0.99, 0.99);
 
-		world.getParticles().push_back(p);
-	}
+    Matrix3 tensor;
+	tensor.setInertiaTensorCoeffs(0.333, 0.333, 0.333); // cube with 0.5 side
 
-	Particle anchorLeft, anchorRight;
-	anchorLeft.position = Vector3(-12.5, 0, 0);
-	anchorLeft.velocity = Vector3(0, 0, 0);
-	anchorLeft.accelaration = Vector3(0, 0, 0);
-	anchorLeft.setmass(0.0); // imovable
+    tensor.invert();
+    body.setInertiaTensor(tensor);
 
-	anchorRight.position = Vector3(11, 0, 0);
-	anchorRight.velocity = Vector3(0, 0, 0);
-	anchorRight.accelaration = Vector3(0, 0, 0);
-	anchorRight.setmass(0.0); // imovable
+    Vector3 force(0, 0, 100);
+    Vector3 point(0.5, 0.5, 0.5);
 
-	ParticleCable* leftLink = new ParticleCable();
-	leftLink->particles[0] = &anchorLeft;
-	leftLink->particles[1] = particles[0];
-	leftLink->maxLength = 2.0;
-	leftLink->restitution = 0.0;
+	body.addForceAtPoint(force, point);
 
-	world.getContactGenerators().push_back(leftLink);
-	links.push_back(leftLink);
+	real duration = 0.01; // 10 ms time step
 
-	ParticleCable* rightLink = new ParticleCable();
-	rightLink->particles[0] = particles[particles.size() - 1];
-	rightLink->particles[1] = &anchorRight;
-	rightLink->maxLength = 2.0;
-	rightLink->restitution = 0.0;
+    for (int i = 0; i < 400; i++) {
+        body.integrate(duration);
+
+        // Print every 0.1 seconds
+        if (i % 10 == 0) {
+            cout << "T=" << setw(4) << (i * duration) << "s | ";
+            printVector("Pos", body.getPosition());
+            cout << " | ";
+            printQuat("Ori", body.getOrientation());
+            cout << endl;
+        }
+
+        // Note: The force is only applied once at the start.
+        // After frame 0, 'forceAccum' is cleared, so the box 
+        // will drift and spin based on its momentum.
+    }
 
 
-	for (int i = 0; i < 11; i++) {
-		ParticleCable* link = new ParticleCable();
-		link->particles[0] = particles[i];
-		link->particles[1] = particles[i + 1];
-		link->maxLength = 2.2;
-		link->restitution = 0.0;
-
-		world.getContactGenerators().push_back(link);
-		links.push_back(link);
-	}
-
-	world.getContactGenerators().push_back(rightLink);
-	links.push_back(rightLink);
-
-	ParticleGravity* gravity = new ParticleGravity(Vector3(0, -9.81, 0));
-	for (auto p : particles) {
-		world.getForceRegistry().add(p, gravity);
-	}
-
-	const real duration = 0.00025;
-
-	for (int i = 0; i < 10000; i++) {
-		world.startFrame();
-		world.runPhysics(duration);
-
-		if (i % 5 == 0) {
-			std::cout << "T=" << std::setw(4) << (i * duration) << "s | ";
-			printBridge(particles);
-			std::cout << " | " << (i < 10 ? "Falling..." : "Settling...") << std::endl;
-		}
-
-	}
 
 }
 

@@ -1,5 +1,6 @@
 #include <cyclone/body.h>
 #include <memory.h>
+#include <assert.h>
 
 using namespace cyclone;
 
@@ -44,7 +45,7 @@ void RigidBody::calculateDerivedData() {
 	inverseInertiaTensorWorld.data[8] = iitWorld.data[6] * r6 + iitWorld.data[7] * r7 + iitWorld.data[8] * r8;
 }
 
-void RigidBody::integrate() {
+void RigidBody::integrate(real duration) {
 	if (inverseMass <= 0.0)
 		return; // imovable object
 
@@ -81,12 +82,9 @@ void RigidBody::addForceAtPoint(const Vector3& force, const Vector3& point) {
 
 	pt -= position;
 
-	torqueAccum += pt % force;
+	torqueAccum += pt ^ force;
 }
 
-void RigidBody::addForceAtBodyPoint(const Vector3& force, const Vector3& point) {
-	Vector3 pt = getPointinWorldSpace(point);
-}
 
 void RigidBody::addForceAtBodyPoint(const Vector3& force, const Vector3& point)
 {

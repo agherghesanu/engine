@@ -1,7 +1,7 @@
 #ifndef CYCLONE_CONTACTS_H
 #define CYCLONE_CONTACTS_H
 
-#include <body.h>
+#include "body.h"
 
 namespace cyclone {
 
